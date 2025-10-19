@@ -10,18 +10,20 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
+import Settings from './pages/Settings';
+import Vacancies from './pages/Vacancies';
 import {
   Profile,
-  Vacancies,
   Responses,
-  Searches,
-  Settings,
   Billing,
   AdminDashboard,
   AdminUsers,
   AdminPayments,
   AdminResponses
 } from './pages';
+import AutoResponses from './pages/AutoResponses';
+import Resume from './pages/Resume';
+import Analytics from './pages/Analytics';
 
 // Layout
 import Layout from './components/Layout';
@@ -69,14 +71,6 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path="/searches" element={
-              <ProtectedRoute>
-                <Layout>
-                  <Searches />
-                </Layout>
-              </ProtectedRoute>
-            } />
-            
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Layout>
@@ -89,6 +83,30 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Billing />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/auto-responses" element={
+              <ProtectedRoute>
+                <Layout>
+                  <AutoResponses />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/resume" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Resume />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Analytics />
                 </Layout>
               </ProtectedRoute>
             } />

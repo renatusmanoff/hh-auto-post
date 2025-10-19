@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Settings, Bell, Shield } from 'lucide-react';
+import { User, Settings as SettingsIcon, Bell, Shield } from 'lucide-react';
 
 const Profile = () => {
   return (
@@ -99,13 +99,13 @@ const Settings = () => {
       <div className="card">
         <div className="card-header">
           <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Settings className="h-6 w-6 mr-2" />
+            <SettingsIcon className="h-6 w-6 mr-2" />
             Настройки
           </h1>
         </div>
         <div className="card-body">
           <div className="text-center py-12">
-            <Settings className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+            <SettingsIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Настройки приложения
             </h3>

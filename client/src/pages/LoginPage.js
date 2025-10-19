@@ -64,6 +64,42 @@ const LoginPage = () => {
                   <Briefcase className="h-5 w-5 mr-2" />
                   Войти через HH.RU
                 </button>
+                
+    {/* Тестовая авторизация для разработки */}
+    <button
+      onClick={async () => {
+        try {
+          const response = await fetch('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/auth/test-login', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          const data = await response.json();
+          if (data.success) {
+            // Обновляем страницу и перенаправляем на дашборд
+            window.location.href = '/dashboard';
+          }
+        } catch (error) {
+          console.error('Test login failed:', error);
+        }
+      }}
+      className="w-full mt-3 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+    >
+      🧪 Тестовый вход (для разработки)
+    </button>
+    
+    {/* Получение токена HH.RU */}
+    <button
+      onClick={() => {
+        // Открываем новую вкладку для авторизации HH.RU
+        window.open('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/auth/hh', '_blank');
+      }}
+      className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+    >
+      🔑 Получить токен HH.RU (для реального резюме)
+    </button>
               </div>
 
               <div className="relative">

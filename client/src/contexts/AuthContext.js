@@ -20,7 +20,9 @@ export const AuthProvider = ({ children }) => {
   // Проверка статуса авторизации
   const checkAuthStatus = async () => {
     try {
-      const response = await axios.get('/api/auth/status');
+      const response = await axios.get('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/auth/status', {
+        withCredentials: true
+      });
       if (response.data.authenticated) {
         setUser(response.data.user);
         setIsAuthenticated(true);
@@ -29,7 +31,6 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -39,18 +40,19 @@ export const AuthProvider = ({ children }) => {
 
   // Вход через HH.RU
   const loginWithHH = () => {
-    window.location.href = '/api/auth/hh';
+    window.location.href = 'process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/auth/hh';
   };
 
   // Выход
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await axios.post('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/auth/logout', {}, {
+        withCredentials: true
+      });
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Вы успешно вышли из системы');
     } catch (error) {
-      console.error('Logout failed:', error);
       toast.error('Ошибка при выходе из системы');
     }
   };
@@ -58,12 +60,13 @@ export const AuthProvider = ({ children }) => {
   // Обновление профиля пользователя
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('/api/user/profile', profileData);
+      const response = await axios.put('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/user/profile', profileData, {
+        withCredentials: true
+      });
       setUser(response.data.user);
       toast.success('Профиль обновлен');
       return response.data.user;
     } catch (error) {
-      console.error('Profile update failed:', error);
       toast.error('Ошибка при обновлении профиля');
       throw error;
     }
@@ -72,7 +75,9 @@ export const AuthProvider = ({ children }) => {
   // Обновление настроек
   const updateSettings = async (settingsData) => {
     try {
-      const response = await axios.put('/api/user/settings/notifications', settingsData);
+      const response = await axios.put('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/user/settings/notifications', settingsData, {
+        withCredentials: true
+      });
       setUser(prev => ({
         ...prev,
         settings: response.data.settings
@@ -80,7 +85,6 @@ export const AuthProvider = ({ children }) => {
       toast.success('Настройки обновлены');
       return response.data.settings;
     } catch (error) {
-      console.error('Settings update failed:', error);
       toast.error('Ошибка при обновлении настроек');
       throw error;
     }

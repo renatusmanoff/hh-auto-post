@@ -1,402 +1,462 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
-  TrendingUp,
-  Send,
   Search,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Plus,
-  Eye,
+  Send,
+  TrendingUp,
+  Users,
   Calendar,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  Filter,
+  Eye,
+  Edit,
+  Trash2,
+  BarChart3,
   Target,
-  Zap
+  Zap,
+  FileText,
+  Bell,
+  Settings,
+  CreditCard,
+  User,
+  LogOut,
+  Play,
+  Pause,
+  Sparkles,
+  ArrowRight,
+  Star,
+  Award,
+  Activity,
+  Briefcase,
+  MapPin,
+  DollarSign,
+  Building
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalResponses: 0,
-    totalSearches: 0,
-    responsesUsed: 0,
-    responsesLimit: 0,
-    recentResponses: []
-  });
+  const { user, checkAuthStatus } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Получение статистики пользователя
-  const { data: userStats, isLoading: statsLoading } = useQuery(
-    'userStats',
-    () => axios.get('/api/user/stats'),
-    {
-      refetchInterval: 30000, // Обновляем каждые 30 секунд
-    }
-  );
-
+  // Проверяем параметр авторизации
   useEffect(() => {
-    if (userStats?.data?.success) {
-      setStats(userStats.data.stats);
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('auth') === 'success') {
+      checkAuthStatus();
+      window.history.replaceState({}, document.title, '/dashboard');
     }
-  }, [userStats]);
+  }, [location.search, checkAuthStatus]);
 
-  // Получение последних вакансий
-  const { data: recentVacancies, isLoading: vacanciesLoading } = useQuery(
-    'recentVacancies',
-    () => axios.get('/api/vacancies/search', {
-      params: {
-        text: user?.resume?.skills?.slice(0, 3).join(' ') || '',
-        perPage: 5
-      }
-    }),
-    {
-      enabled: !!user?.resume?.skills,
-      refetchInterval: 60000, // Обновляем каждую минуту
+  // Получение статистики
+  const { data: stats, isLoading: statsLoading } = useQuery(
+    'dashboard-stats',
+    async () => {
+      const response = await axios.get('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/user/stats', {
+        withCredentials: true
+      });
+      return response.data;
     }
   );
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'sent':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+  // Получение активных поисков
+  const { data: searches } = useQuery(
+    'active-searches',
+    async () => {
+      const response = await axios.get('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/searches?status=active', {
+        withCredentials: true
+      });
+      return response.data;
     }
-  };
+  );
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'sent':
-        return 'Отправлен';
-      case 'pending':
-        return 'Ожидает';
-      case 'failed':
-        return 'Ошибка';
-      default:
-        return 'Неизвестно';
+  // Получение последних откликов
+  const { data: recentResponsesData } = useQuery(
+    'recent-responses',
+    async () => {
+      const response = await axios.get('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/responses?limit=5', {
+        withCredentials: true
+      });
+      return response.data;
     }
+  );
+
+  const recentResponses = recentResponsesData?.responses || [];
+
+  // Получение рекомендуемых вакансий
+  const { data: recommendedVacanciesData } = useQuery(
+    'recommended-vacancies',
+    async () => {
+      const response = await axios.get('process.env.NODE_ENV === "production" ? "https://myunion.pro" : "http://localhost:3001"/api/vacancies/recommended', {
+        withCredentials: true
+      });
+      return response.data;
+    }
+  );
+
+  const recommendedVacancies = recommendedVacanciesData?.vacancies || [];
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const getPlanBadge = (plan) => {
     const badges = {
-      free: { text: 'Бесплатно', className: 'badge-gray' },
-      basic: { text: 'Базовый', className: 'badge-info' },
-      premium: { text: 'Премиум', className: 'badge-success' }
+      free: { text: 'Бесплатно', className: 'bg-gray-100 text-gray-800' },
+      basic: { text: 'Базовый', className: 'bg-blue-100 text-blue-800' },
+      premium: { text: 'Премиум', className: 'bg-purple-100 text-purple-800' }
     };
     return badges[plan] || badges.free;
   };
 
-  const remainingResponses = stats.responsesLimit - stats.responsesUsed;
-  const responsePercentage = (stats.responsesUsed / stats.responsesLimit) * 100;
-
-  if (statsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="loading-spinner"></div>
-      </div>
-    );
-  }
+  const getResponseStatusBadge = (status) => {
+    const badges = {
+      sent: { text: 'Отправлен', className: 'bg-blue-100 text-blue-800', icon: Send },
+      viewed: { text: 'Просмотрен', className: 'bg-yellow-100 text-yellow-800', icon: Eye },
+      invited: { text: 'Приглашение', className: 'bg-green-100 text-green-800', icon: CheckCircle },
+      rejected: { text: 'Отказ', className: 'bg-red-100 text-red-800', icon: AlertCircle }
+    };
+    return badges[status] || badges.sent;
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Welcome Section */}
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Welcome Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Добро пожаловать, {user?.firstName}!
-        </h1>
-        <p className="mt-2 text-gray-600">
-          Вот обзор вашей активности и последних обновлений
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Добро пожаловать, {user?.firstName}! 👋
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Вот обзор вашей активности и последних обновлений
+            </p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getPlanBadge(user?.subscription?.plan).className}`}>
+              {getPlanBadge(user?.subscription?.plan).text}
+            </span>
+            <button
+              onClick={() => navigate('/billing')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              Улучшить план
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-md bg-blue-500 flex items-center justify-center">
-                  <Send className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Всего откликов</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalResponses}</p>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Send className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Всего откликов</p>
+              <p className="text-2xl font-bold text-gray-900">{stats?.totalResponses || 0}</p>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-md bg-green-500 flex items-center justify-center">
-                  <Search className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Сохраненных поисков</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalSearches}</p>
-              </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Target className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Активных поисков</p>
+              <p className="text-2xl font-bold text-gray-900">{searches?.length || 0}</p>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-md bg-yellow-500 flex items-center justify-center">
-                  <Target className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Использовано откликов</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {stats.responsesUsed}/{stats.responsesLimit}
-                </p>
-              </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Приглашений</p>
+              <p className="text-2xl font-bold text-gray-900">{stats?.invitations || 0}</p>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-md bg-purple-500 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Тарифный план</p>
-                <span className={`badge ${getPlanBadge(user?.subscription?.plan).className}`}>
-                  {getPlanBadge(user?.subscription?.plan).text}
-                </span>
-              </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Activity className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Конверсия</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats?.conversionRate ? `${stats.conversionRate}%` : '0%'}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Response Limit Warning */}
-      {remainingResponses <= 10 && remainingResponses > 0 && (
-        <div className="mb-8">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-yellow-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-yellow-800">
-                  Лимит откликов почти исчерпан
-                </h3>
-                <div className="mt-2 text-sm text-yellow-700">
-                  <p>
-                    У вас осталось {remainingResponses} откликов. 
-                    Рассмотрите возможность продления подписки для продолжения работы.
-                  </p>
-                </div>
-                <div className="mt-3">
-                  <div className="bg-yellow-200 rounded-full h-2">
-                    <div 
-                      className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${responsePercentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Create Search */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-xl text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+              <Zap className="h-6 w-6" />
+            </div>
+            <ArrowRight className="h-5 w-5 opacity-70" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Создать поиск</h3>
+          <p className="text-blue-100 text-sm mb-4">
+            Настройте автоматические отклики на подходящие вакансии
+          </p>
+          <button
+            onClick={() => navigate('/searches')}
+            className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            Создать поиск
+          </button>
+        </div>
+
+        {/* Improve Resume */}
+        <div className="bg-gradient-to-r from-green-600 to-teal-600 p-6 rounded-xl text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <ArrowRight className="h-5 w-5 opacity-70" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Улучшить резюме</h3>
+          <p className="text-green-100 text-sm mb-4">
+            ИИ проанализирует и улучшит ваше резюме
+          </p>
+          <button
+            onClick={() => navigate('/resume')}
+            className="bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            Улучшить резюме
+          </button>
+        </div>
+
+        {/* View Analytics */}
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 rounded-xl text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <ArrowRight className="h-5 w-5 opacity-70" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Аналитика</h3>
+          <p className="text-purple-100 text-sm mb-4">
+            Отслеживайте эффективность ваших откликов
+          </p>
+          <button
+            onClick={() => navigate('/analytics')}
+            className="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            Посмотреть аналитику
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Responses */}
-        <div className="card">
-          <div className="card-header">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Последние отклики</h3>
-              <a href="/responses" className="text-sm text-blue-600 hover:text-blue-500">
+              <h2 className="text-xl font-semibold text-gray-900">Последние отклики</h2>
+              <button
+                onClick={() => navigate('/responses')}
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
                 Посмотреть все
-              </a>
+              </button>
             </div>
           </div>
-          <div className="card-body">
-            {stats.recentResponses.length > 0 ? (
-              <div className="space-y-4">
-                {stats.recentResponses.slice(0, 5).map((response) => (
-                  <div key={response._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      {getStatusIcon(response.status)}
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {response.vacancyId?.title || 'Вакансия'}
+          <div className="divide-y divide-gray-200">
+            {recentResponses?.length === 0 ? (
+              <div className="p-8 text-center">
+                <Send className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Нет откликов</h3>
+                <p className="text-gray-500 mb-4">
+                  Начните с создания поиска вакансий
+                </p>
+                <button
+                  onClick={() => navigate('/searches')}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  + Найти вакансии
+                </button>
+              </div>
+            ) : (
+              recentResponses.map((response) => {
+                const statusBadge = getResponseStatusBadge(response.status);
+                const StatusIcon = statusBadge.icon;
+                
+                return (
+                  <div key={response._id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-gray-900 mb-1">
+                          {response.vacancy?.title || 'Вакансия'}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {response.vacancy?.company?.name || 'Компания'}
                         </p>
-                        <p className="text-sm text-gray-500">
-                          {response.vacancyId?.company?.name || 'Компания'}
-                        </p>
+                        <div className="flex items-center text-xs text-gray-500">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatDate(response.createdAt)}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">
-                        {format(new Date(response.createdAt), 'dd.MM.yyyy', { locale: ru })}
-                      </p>
-                      <span className={`badge ${
-                        response.status === 'sent' ? 'badge-success' :
-                        response.status === 'pending' ? 'badge-warning' :
-                        'badge-danger'
-                      }`}>
-                        {getStatusText(response.status)}
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {statusBadge.text}
                       </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Send className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Нет откликов</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Начните с создания поиска вакансий
-                </p>
-                <div className="mt-6">
-                  <a href="/vacancies" className="btn-primary">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Найти вакансии
-                  </a>
-                </div>
-              </div>
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* Recent Vacancies */}
-        <div className="card">
-          <div className="card-header">
+        {/* Recommended Vacancies */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Рекомендуемые вакансии</h3>
-              <a href="/vacancies" className="text-sm text-blue-600 hover:text-blue-500">
+              <h2 className="text-xl font-semibold text-gray-900">Рекомендуемые вакансии</h2>
+              <button
+                onClick={() => navigate('/vacancies')}
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
                 Посмотреть все
-              </a>
+              </button>
             </div>
           </div>
-          <div className="card-body">
-            {vacanciesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="loading-spinner"></div>
-              </div>
-            ) : recentVacancies?.data?.vacancies?.length > 0 ? (
-              <div className="space-y-4">
-                {recentVacancies.data.vacancies.slice(0, 5).map((vacancy) => (
-                  <div key={vacancy._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{vacancy.title}</p>
-                      <p className="text-sm text-gray-500">{vacancy.company?.name}</p>
-                      {vacancy.salary && (
-                        <p className="text-sm text-green-600 font-medium">
-                          {vacancy.salary.from && `от ${vacancy.salary.from.toLocaleString()}`}
-                          {vacancy.salary.to && ` до ${vacancy.salary.to.toLocaleString()}`}
-                          {vacancy.salary.currency && ` ${vacancy.salary.currency}`}
-                        </p>
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <a
-                        href={vacancy.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-outline text-xs"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        Открыть
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Search className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Нет вакансий</h3>
-                <p className="mt-1 text-sm text-gray-500">
+          <div className="divide-y divide-gray-200">
+            {recommendedVacancies?.length === 0 ? (
+              <div className="p-8 text-center">
+                <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Нет вакансий</h3>
+                <p className="text-gray-500 mb-4">
                   Настройте поиск для получения рекомендаций
                 </p>
-                <div className="mt-6">
-                  <a href="/vacancies" className="btn-primary">
-                    <Zap className="h-4 w-4 mr-2" />
-                    Настроить поиск
-                  </a>
-                </div>
+                <button
+                  onClick={() => navigate('/searches')}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Настроить поиск
+                </button>
               </div>
+            ) : (
+              recommendedVacancies.map((vacancy) => (
+                <div key={vacancy._id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-gray-900 mb-1">
+                        {vacancy.title}
+                      </h3>
+                      <div className="flex items-center text-sm text-gray-600 mb-2">
+                        <Building className="h-4 w-4 mr-1" />
+                        {vacancy.company?.name}
+                        {vacancy.area?.name && (
+                          <>
+                            <MapPin className="h-4 w-4 ml-3 mr-1" />
+                            {vacancy.area.name}
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500">
+                        {vacancy.salary && (
+                          <>
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            {vacancy.salary.from && `от ${vacancy.salary.from.toLocaleString()} ₽`}
+                            {vacancy.salary.to && ` до ${vacancy.salary.to.toLocaleString()} ₽`}
+                          </>
+                        )}
+                        <Clock className="h-4 w-4 ml-3 mr-1" />
+                        {formatDate(vacancy.published_at)}
+                      </div>
+                    </div>
+                    <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                      Откликнуться
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
       </div>
 
-      {/* Profile Completion */}
-      {!user?.resume?.aboutMe && (
-        <div className="card mb-8">
-          <div className="card-body">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-8 w-8 text-yellow-500" />
+      {/* Active Searches */}
+      {searches?.length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Активные поиски</h2>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {searches.map((search) => (
+              <div key={search._id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <h3 className="text-lg font-medium text-gray-900 mr-3">
+                        {search.name}
+                      </h3>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Активен
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <Search className="h-4 w-4 mr-2" />
+                        <span>{search.keywords || 'Все вакансии'}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Target className="h-4 w-4 mr-2" />
+                        <span>{search.responsesCount || 0} откликов</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        <span>Создан {formatDate(search.createdAt)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2" />
+                        <span>Обновлен {formatDate(search.updatedAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 ml-6">
+                    <button className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium">
+                      <Pause className="h-4 w-4 mr-1 inline" />
+                      Остановить
+                    </button>
+                    <button className="p-2 text-gray-400 hover:text-gray-600">
+                      <Settings className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="ml-4 flex-1">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Завершите настройку профиля
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Добавьте информацию о себе для более точного поиска вакансий и генерации сопроводительных писем.
-                </p>
-              </div>
-              <div className="ml-4">
-                <a href="/profile" className="btn-primary">
-                  Заполнить профиль
-                </a>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
-
-      {/* Subscription Status */}
-      <div className="card">
-        <div className="card-body">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">Подписка</h3>
-              <p className="text-sm text-gray-600">
-                {user?.subscription?.isActive ? (
-                  <>
-                    Активна до {format(new Date(user.subscription.endDate), 'dd.MM.yyyy', { locale: ru })}
-                  </>
-                ) : (
-                  'Неактивна'
-                )}
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className={`badge ${getPlanBadge(user?.subscription?.plan).className}`}>
-                {getPlanBadge(user?.subscription?.plan).text}
-              </span>
-              <a href="/billing" className="btn-outline">
-                Управление подпиской
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

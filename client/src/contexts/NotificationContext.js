@@ -20,15 +20,27 @@ export const NotificationProvider = ({ children }) => {
   // Инициализация OneSignal
   useEffect(() => {
     const initializeOneSignal = () => {
-      if (window.OneSignal) {
-        window.OneSignal.init({
-          appId: process.env.REACT_APP_ONESIGNAL_APP_ID || '0bd90862-850a-4f7a-b722-9de6e32c0707',
-        }).then(() => {
+      // Проверяем домен - OneSignal работает только на https://hh-finder.ru
+      if (window.location.hostname !== 'hh-finder.ru' && window.location.hostname !== 'localhost') {
+        return;
+      }
+
+      if (window.OneSignal && !isOneSignalInitialized) {
+        // Проверяем, не инициализирован ли уже OneSignal
+        if (window.OneSignal.isPushNotificationsEnabled !== undefined) {
           setIsOneSignalInitialized(true);
-          console.log('OneSignal initialized');
-        }).catch((error) => {
-          console.error('OneSignal initialization failed:', error);
-        });
+          return;
+        }
+
+        try {
+          window.OneSignal.init({
+            appId: process.env.REACT_APP_ONESIGNAL_APP_ID || '0bd90862-850a-4f7a-b722-9de6e32c0707',
+          }).then(() => {
+            setIsOneSignalInitialized(true);
+          }).catch((error) => {
+          });
+        } catch (error) {
+        }
       }
     };
 
@@ -49,7 +61,7 @@ export const NotificationProvider = ({ children }) => {
         clearInterval(checkOneSignal);
       }, 10000);
     }
-  }, []);
+  }, [isOneSignalInitialized]);
 
   // Подписка на push уведомления
   const subscribeToPush = async () => {
@@ -68,7 +80,6 @@ export const NotificationProvider = ({ children }) => {
         return false;
       }
     } catch (error) {
-      console.error('Push subscription failed:', error);
       toast.error('Ошибка при включении push уведомлений');
       return false;
     }
@@ -93,7 +104,6 @@ export const NotificationProvider = ({ children }) => {
         }
       }
     } catch (error) {
-      console.error('Test notification failed:', error);
       toast.error('Ошибка при отправке тестового уведомления');
     }
   };
@@ -105,7 +115,6 @@ export const NotificationProvider = ({ children }) => {
       setNotifications(response.data.notifications || []);
       setUnreadCount(response.data.unreadCount || 0);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
     }
   };
 
@@ -118,7 +127,6 @@ export const NotificationProvider = ({ children }) => {
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
     }
   };
 
@@ -129,7 +137,6 @@ export const NotificationProvider = ({ children }) => {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
     }
   };
 
@@ -140,7 +147,6 @@ export const NotificationProvider = ({ children }) => {
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Failed to delete notification:', error);
     }
   };
 
@@ -150,7 +156,6 @@ export const NotificationProvider = ({ children }) => {
       const response = await axios.get('/api/notifications/status');
       return response.data;
     } catch (error) {
-      console.error('Failed to get notification status:', error);
       return null;
     }
   };
