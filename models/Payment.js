@@ -6,11 +6,8 @@ const paymentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  plan: {
-    type: String,
-    enum: ['basic', 'premium'],
-    required: true
-  },
+  
+  // Информация о платеже
   amount: {
     type: Number,
     required: true
@@ -19,28 +16,74 @@ const paymentSchema = new mongoose.Schema({
     type: String,
     default: 'RUB'
   },
+  
+  // Тарифный план
+  plan: {
+    type: String,
+    enum: ['free', 'basic', 'premium'],
+    required: true
+  },
+  planName: {
+    type: String,
+    required: true
+  },
+  
+  // Период подписки
+  period: {
+    type: String,
+    enum: ['monthly', 'yearly'],
+    required: true
+  },
+  
+  // Статус платежа
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'cancelled'],
+    enum: ['pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded'],
     default: 'pending'
   },
-  yookassaPaymentId: String,
-  yookassaConfirmationUrl: String,
-  description: String,
-  period: {
-    startDate: Date,
-    endDate: Date
+  
+  // Информация о платежной системе
+  paymentMethod: {
+    type: String,
+    enum: ['yookassa', 'stripe', 'paypal'],
+    required: true
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  paymentId: String, // ID платежа в платежной системе
+  transactionId: String, // ID транзакции
+  
+  // Данные от платежной системы
+  paymentData: {
+    type: mongoose.Schema.Types.Mixed
   },
-  completedAt: Date
+  
+  // Даты
+  paidAt: Date,
+  expiresAt: Date,
+  
+  // Ошибки
+  errorMessage: String,
+  errorCode: String,
+  
+  // Возврат
+  refundAmount: Number,
+  refundReason: String,
+  refundedAt: Date,
+  
+  // Метаданные
+  metadata: {
+    userAgent: String,
+    ipAddress: String,
+    promoCode: String,
+    discount: Number
+  }
+}, {
+  timestamps: true
 });
 
-// Indexes
-paymentSchema.index({ userId: 1 });
+// Индексы
+paymentSchema.index({ userId: 1, createdAt: -1 });
 paymentSchema.index({ status: 1 });
-paymentSchema.index({ yookassaPaymentId: 1 });
+paymentSchema.index({ paymentId: 1 });
+paymentSchema.index({ expiresAt: 1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

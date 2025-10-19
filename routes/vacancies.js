@@ -111,6 +111,166 @@ router.post('/search', requireAuth, async (req, res) => {
   }
 });
 
+// Получение рекомендуемых вакансий для дашборда
+router.get('/recommended', requireAuth, async (req, res) => {
+  try {
+    // Получаем последние активные поиски пользователя
+    const userSearches = await Search.find({ 
+      userId: req.user._id, 
+      status: 'active' 
+    }).sort({ createdAt: -1 }).limit(3);
+
+    if (userSearches.length === 0) {
+      // Если нет поисков, возвращаем популярные вакансии
+      const popularVacancies = await Vacancy.find({ isActive: true })
+        .sort({ publishedAt: -1 })
+        .limit(5);
+      
+      return res.json({
+        success: true,
+        vacancies: popularVacancies
+      });
+    }
+
+    // Используем фильтры из последнего поиска для получения рекомендаций
+    const lastSearch = userSearches[0];
+
+    // Для тестового пользователя возвращаем моковые данные
+    if (req.user.email === 'test@example.com') {
+      const mockVacancies = [
+        {
+          _id: 'mock1',
+          hhId: 'mock1',
+          title: 'Frontend разработчик (React)',
+          company: {
+            name: 'ТехКомпания',
+            logo: null
+          },
+          salary: {
+            from: 150000,
+            to: 250000,
+            currency: 'RUR'
+          },
+          location: {
+            city: 'Москва'
+          },
+          publishedAt: new Date(),
+          url: '#'
+        },
+        {
+          _id: 'mock2',
+          hhId: 'mock2',
+          title: 'JavaScript разработчик',
+          company: {
+            name: 'Инновации',
+            logo: null
+          },
+          salary: {
+            from: 120000,
+            to: 200000,
+            currency: 'RUR'
+          },
+          location: {
+            city: 'Москва'
+          },
+          publishedAt: new Date(),
+          url: '#'
+        }
+      ];
+      
+      return res.json({
+        success: true,
+        vacancies: mockVacancies
+      });
+    } else {
+      // Формируем параметры для поиска на HH.RU (только для реальных пользователей)
+      const params = new URLSearchParams();
+    
+    if (lastSearch.keywords) params.append('text', lastSearch.keywords);
+    if (lastSearch.areaIds && lastSearch.areaIds.length > 0) params.append('area', lastSearch.areaIds.join(','));
+    if (lastSearch.specialization && lastSearch.specialization.length > 0) params.append('specialization', lastSearch.specialization.join(','));
+    if (lastSearch.experience) params.append('experience', lastSearch.experience);
+    if (lastSearch.employment && lastSearch.employment.length > 0) params.append('employment', lastSearch.employment.join(','));
+    if (lastSearch.schedule && lastSearch.schedule.length > 0) params.append('schedule', lastSearch.schedule.join(','));
+    if (lastSearch.salary) {
+      if (lastSearch.salary.from) params.append('salary', lastSearch.salary.from);
+      if (lastSearch.salary.currency) params.append('currency', lastSearch.salary.currency);
+    }
+    
+    params.append('per_page', 5);
+    params.append('order_by', 'publication_time');
+
+    // Выполняем запрос к HH.RU API
+    const response = await axios.get(`https://api.hh.ru/vacancies?${params.toString()}`, {
+      headers: {
+        'User-Agent': 'HH-Finder/1.0'
+      }
+    });
+
+    const vacancies = response.data.items || [];
+    
+    // Сохраняем найденные вакансии в базу данных
+    const savedVacancies = [];
+    for (const vacancy of vacancies) {
+      try {
+        let savedVacancy = await Vacancy.findOne({ hhId: vacancy.id });
+        
+        if (!savedVacancy) {
+          savedVacancy = new Vacancy({
+            hhId: vacancy.id,
+            title: vacancy.name,
+            company: {
+              name: vacancy.employer?.name,
+              id: vacancy.employer?.id,
+              logo: vacancy.employer?.logo_urls?.original,
+              url: vacancy.employer?.url
+            },
+            salary: vacancy.salary ? {
+              from: vacancy.salary.from,
+              to: vacancy.salary.to,
+              currency: vacancy.salary.currency,
+              gross: vacancy.salary.gross
+            } : null,
+            experience: vacancy.experience?.name,
+            schedule: vacancy.schedule?.name,
+            employment: vacancy.employment?.name,
+            description: vacancy.description,
+            requirements: vacancy.requirement,
+            responsibilities: vacancy.responsibility,
+            conditions: vacancy.conditions,
+            skills: vacancy.key_skills?.map(skill => skill.name) || [],
+            location: {
+              city: vacancy.area?.name,
+              address: vacancy.address?.raw,
+              metro: vacancy.metro?.map(station => station.station_name) || []
+            },
+            publishedAt: vacancy.published_at ? new Date(vacancy.published_at) : null,
+            url: vacancy.alternate_url
+          });
+          
+          await savedVacancy.save();
+        }
+        
+        savedVacancies.push(savedVacancy);
+      } catch (error) {
+        // Ошибка сохранения вакансии
+      }
+    }
+
+    res.json({
+      success: true,
+      vacancies: savedVacancies
+    });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get recommended vacancies',
+      error: error.message
+    });
+  }
+});
+
 // Получение детальной информации о вакансии
 router.get('/:id', async (req, res) => {
   try {

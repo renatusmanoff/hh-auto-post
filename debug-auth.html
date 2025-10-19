@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HH Finder - Отладка авторизации</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 HH Finder - Отладка авторизации</h1>
+        
+        <div class="status info">
+            <strong>Цель:</strong> Найти и исправить проблему с авторизацией HH.RU
+        </div>
+
+        <h3>🚀 Тестирование:</h3>
+        
+        <a href="http://localhost:3001/api/auth/hh" class="btn" target="_blank">
+            🔐 Пройти авторизацию HH.RU
+        </a>
+        
+        <button onclick="checkStatus()" class="btn">📊 Проверить статус</button>
+        
+        <button onclick="checkLogs()" class="btn">📋 Проверить логи</button>
+
+        <div id="results"></div>
+
+        <h3>📋 Логи сервера:</h3>
+        <div id="logs" class="log">Нажмите "Проверить логи" для просмотра...</div>
+
+        <h3>🔧 Инструкции по отладке:</h3>
+        <ol>
+            <li><strong>Нажмите "Пройти авторизацию HH.RU"</strong></li>
+            <li><strong>Войдите с учетными данными:</strong> i@usmanoff.com / 123321ZxQ@</li>
+            <li><strong>После авторизации</strong> нажмите "Проверить статус"</li>
+            <li><strong>Если ошибка</strong> - нажмите "Проверить логи"</li>
+            <li><strong>Отправьте логи</strong> для анализа проблемы</li>
+        </ol>
+
+        <div class="status warning">
+            <strong>⚠️ Важно:</strong> После каждого шага проверяйте статус и логи!
+        </div>
+    </div>
+
+    <script>
+        async function checkStatus() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="status info">Проверяем статус...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/status');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    resultsDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Пользователь авторизован!<br>
+                            Email: ${data.user.email}<br>
+                            Имя: ${data.user.firstName} ${data.user.lastName}<br>
+                            HH ID: ${data.user.hhId}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Пользователь не авторизован<br>
+                            Статус: ${JSON.stringify(data)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Ошибка проверки статуса: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function checkLogs() {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = 'Получаем логи сервера...';
+            
+            try {
+                // Простая проверка доступности сервера
+                const response = await fetch('http://localhost:3001/api/auth/status');
+                logsDiv.innerHTML = `
+                    <div class="status success">✅ Сервер доступен</div>
+                    <div class="status info">
+                        <strong>Для просмотра логов сервера:</strong><br>
+                        1. Откройте терминал<br>
+                        2. Выполните: <code>docker logs mongodb</code><br>
+                        3. Проверьте логи Node.js в консоли где запущен сервер
+                    </div>
+                `;
+            } catch (error) {
+                logsDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Сервер недоступен: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Автоматическая проверка статуса при загрузке
+        window.onload = function() {
+            checkStatus();
+        };
+    </script>
+</body>
+</html>

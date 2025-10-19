@@ -247,4 +247,91 @@ router.get('/stats', requireAuth, async (req, res) => {
   }
 });
 
+// Сохранение настроек пользователя
+router.put('/settings', requireAuth, async (req, res) => {
+  try {
+    const { notifications, autoResponse, profile, privacy } = req.body;
+    
+    // Обновляем настройки пользователя
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: {
+          settings: {
+            notifications: notifications || {},
+            autoResponse: autoResponse || {},
+            profile: profile || {},
+            privacy: privacy || {}
+          }
+        }
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Настройки сохранены',
+      settings: updatedUser.settings
+    });
+  } catch (error) {
+    console.error('Settings save error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сохранения настроек',
+      error: error.message
+    });
+  }
+});
+
+// Получение настроек пользователя
+router.get('/settings', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('settings');
+    
+    res.json({
+      success: true,
+      settings: user.settings || {
+        notifications: {
+          email: true,
+          telegram: true,
+          push: true,
+          newVacancies: true,
+          responses: true,
+          invitations: true,
+          errors: true
+        },
+        autoResponse: {
+          enabled: true,
+          maxDailyResponses: 50,
+          maxTotalResponses: 200,
+          responseInterval: 60,
+          skipDuplicates: true,
+          skipCompanies: [],
+          preferredSchedule: 'workdays'
+        },
+        profile: {
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          email: user.email || '',
+          phone: '',
+          timezone: 'Europe/Moscow',
+          language: 'ru'
+        },
+        privacy: {
+          showProfile: true,
+          allowMessages: true,
+          shareAnalytics: false
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Settings get error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения настроек',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

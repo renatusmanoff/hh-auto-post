@@ -10,48 +10,160 @@ const searchSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  filters: {
-    text: String,
-    area: [String], // city IDs
-    specialization: [String], // specialization IDs
-    experience: String,
-    employment: [String],
-    schedule: [String],
-    salary: {
-      from: Number,
-      to: Number,
-      currency: String
-    },
-    orderBy: {
+  description: {
+    type: String
+  },
+  
+  // Основные фильтры
+  keywords: {
+    type: String,
+    required: true
+  },
+  excludeKeywords: {
+    type: String
+  },
+  
+  // Локация
+  area: {
+    type: String
+  },
+  areaIds: [{
+    type: String
+  }],
+  
+  // Зарплата
+  salary: {
+    min: Number,
+    max: Number,
+    currency: {
       type: String,
-      default: 'relevance'
+      enum: ['RUR', 'USD', 'EUR'],
+      default: 'RUR'
     }
   },
-  isActive: {
-    type: Boolean,
-    default: true
+  
+  // Опыт работы
+  experience: {
+    type: String,
+    enum: ['noExperience', 'between1And3', 'between3And6', 'moreThan6']
   },
-  lastRun: Date,
-  totalFound: {
+  
+  // График работы
+  schedule: {
+    type: String,
+    enum: ['fullDay', 'shift', 'flexible', 'remote', 'flyInFlyOut']
+  },
+  
+  // Тип занятости
+  employment: {
+    type: String,
+    enum: ['full', 'part', 'project', 'volunteer', 'probation']
+  },
+  
+  // Дополнительные фильтры
+  specialization: [{
+    type: String
+  }],
+  industry: [{
+    type: String
+  }],
+  companySize: {
+    type: String,
+    enum: ['small', 'medium', 'large', 'very_large']
+  },
+  companyType: {
+    type: String,
+    enum: ['company', 'startup', 'ngo', 'government']
+  },
+  
+  // Настройки откликов
+  coverLetter: {
+    type: String,
+    default: ''
+  },
+  coverLetterTemplate: {
+    type: String,
+    enum: ['default', 'custom', 'ai_generated'],
+    default: 'default'
+  },
+  resumeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resume'
+  },
+  
+  // Лимиты и ограничения
+  dailyLimit: {
+    type: Number,
+    default: 50
+  },
+  totalLimit: {
+    type: Number,
+    default: 200
+  },
+  
+  // Статус и статистика
+  status: {
+    type: String,
+    enum: ['active', 'paused', 'completed', 'error'],
+    default: 'active'
+  },
+  responsesCount: {
     type: Number,
     default: 0
   },
-  responsesSent: {
+  invitationsCount: {
     type: Number,
     default: 0
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  rejectionsCount: {
+    type: Number,
+    default: 0
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  
+  // Время работы
+  lastRun: {
+    type: Date
+  },
+  nextRun: {
+    type: Date
+  },
+  runInterval: {
+    type: Number, // в минутах
+    default: 60
+  },
+  
+  // Ошибки
+  lastError: {
+    message: String,
+    timestamp: Date
+  },
+  errorCount: {
+    type: Number,
+    default: 0
+  },
+  
+  // Настройки уведомлений
+  notifications: {
+    email: {
+      type: Boolean,
+      default: true
+    },
+    telegram: {
+      type: Boolean,
+      default: true
+    },
+    push: {
+      type: Boolean,
+      default: true
+    }
   }
+}, {
+  timestamps: true
 });
 
-// Indexes
-searchSchema.index({ userId: 1 });
-searchSchema.index({ isActive: 1 });
+// Индексы для оптимизации
+searchSchema.index({ userId: 1, status: 1 });
+searchSchema.index({ nextRun: 1 });
+searchSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Search', searchSchema);

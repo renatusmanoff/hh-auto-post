@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HH Finder - Тест авторизации</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 HH Finder - Тест авторизации</h1>
+        
+        <div class="status success">
+            ✅ Backend работает на порту 3001<br>
+            ✅ Frontend работает на порту 3002
+        </div>
+
+        <h3>Тестирование авторизации:</h3>
+        
+        <a href="http://localhost:3001/api/auth/hh" class="btn">
+            🔐 Войти через HH.RU (прямая ссылка)
+        </a>
+        
+        <a href="http://localhost:3002" class="btn">
+            🏠 Перейти на главную страницу
+        </a>
+
+        <h3>Проверка API:</h3>
+        
+        <button onclick="checkAPI()" class="btn">🔍 Проверить API</button>
+        
+        <div id="api-status"></div>
+
+        <h3>Инструкции:</h3>
+        <ol style="text-align: left;">
+            <li>Нажмите "Войти через HH.RU" - должно перенаправить на HH.RU</li>
+            <li>После авторизации на HH.RU вы вернетесь в приложение</li>
+            <li>Если не работает - нажмите "Проверить API"</li>
+        </ol>
+    </div>
+
+    <script>
+        async function checkAPI() {
+            const statusDiv = document.getElementById('api-status');
+            statusDiv.innerHTML = '<div class="status">Проверяем API...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/status');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ API работает!<br>
+                            Статус: ${data.authenticated ? 'Авторизован' : 'Не авторизован'}
+                        </div>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Ошибка API: ${response.status}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Ошибка подключения: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
